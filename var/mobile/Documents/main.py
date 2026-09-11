@@ -89,7 +89,7 @@ class GhostDaemon(object):
                  with open(DEFAULT_LOG_FILE, 'a') as f:
                      f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Capture Error: {str(e)}\n")
              except: pass 
-            print(f"[!] Screenshot failed (likely permissions): {e}")
+             print(f"[!] Screenshot failed (likely permissions): {e}")
 
     def check_root_access(self):
         """Verifies if we have root access."""
