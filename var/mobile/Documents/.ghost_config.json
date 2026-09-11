@@ -2,5 +2,6 @@
     "target_server_ip": "YOUR_SERVER_IP_HERE", 
     "server_port": 9998,
     "screenshot_interval_seconds": 300, 
-    "log_path": "/tmp/.ghost_logs.log"
+    "log_path": "/tmp/.ghost_logs.log",
+    "app_name": "GhostOS_Spyware_v1"
 }
