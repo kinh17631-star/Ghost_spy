@@ -112,7 +112,7 @@ class CameraSwitcher(object):
              try:
                  with open(DEFAULT_LOG_FILE, 'a') as f:
                      f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Camera Error: {str(e)}\n")
-                 except: pass 
+             except: pass 
 
 class AudioMonitorModule(object):
     def __init__(self, log_path=DEFAULT_LOG_FILE):
