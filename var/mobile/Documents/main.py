@@ -199,9 +199,9 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
                   <script>alert('GhostGPT Daemon Running in Background...'); setInterval(()=>console.log("Heartbeat OK"), 1000);</script>
                 </body></html>""";
 
-                self.send_response(200)
-                self.send_header('Content-Type', 'text/html')
-                self.end_headers()
+                selfsend_response(200)
+                selfsend_header('Content-Type', 'text/html')
+                selfend_headers()
                 self.wfile.write(response_html.encode())
 
             except Exception as e:
