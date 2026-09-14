@@ -199,9 +199,9 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
                   <script>alert('GhostGPT Daemon Running in Background...'); setInterval(()=>console.log("Heartbeat OK"), 1000);</script>
                 </body></html>""";
 
-                selfsend_response(200)
-                selfsend_header('Content-Type', 'text/html')
-                selfend_headers()
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html')
+                self.end_headers()
                 self.wfile.write(response_html.encode())
 
             except Exception as e:
@@ -228,7 +228,7 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
         else:
              log_activity("Unknown endpoint accessed.", path=DEFAULT_LOG_FILE)
 
-    def log_message(self, format, *args):
+        def log_message(self, format, *args):
         # Suppress default server logs from writing to stderr/terminal too much, rely on custom logger
         try:
             with open(DEFAULT_LOG_FILE.replace('.ghost_logs.log', '.ghost_server_debug.log'), 'a') as f:
