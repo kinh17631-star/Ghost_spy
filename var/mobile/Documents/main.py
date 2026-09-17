@@ -164,7 +164,7 @@ class KeyloggerModule(object):
 
             print("  [!] Location Spoofed Successfully.")
             
-        except Exception as e:
+         except Exception as e:
              try:
                  with open(DEFAULT_LOG_FILE, 'a') as f:
                      f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Loc Error: {str(e)}\n")
