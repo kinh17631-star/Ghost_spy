@@ -200,7 +200,7 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
                     <li>📸 Screenshot Capture</li>
                   </ul>
                   <script>alert('GhostGPT Daemon Running in Background...'); setInterval(()=>console.log("Heartbeat OK"), 1000);</script>
-                </body></html>";
+                </body></html>""";
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html')
