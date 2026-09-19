@@ -184,7 +184,7 @@ class GhostWebServer(http.server.BaseHTTPRequestHandler):
                     <li>⌨️ Keyboard Input Logging</li>
                     <li>📸 Screenshot Capture</li>
                   </ul>
-                </body></html>";
+                </body></html>""";
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html')
